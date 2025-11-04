@@ -4,7 +4,7 @@ const port = 80;
 
 app.get('/', (req, res) => {
   res.json({
-    message: 'Hello from ECS!',
+    message: 'Hello from ECS!!!',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   });
