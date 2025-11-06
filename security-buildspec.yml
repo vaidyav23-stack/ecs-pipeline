@@ -28,15 +28,15 @@ phases:
       - ./dependency-check/bin/dependency-check.sh --project "sample-app" --scan . --format HTML --out . --noupdate --disableNodeJS --disableNodeAudit || echo "OWASP scan completed"
       - echo "OWASP scan finished, checking output..."
       - ls -la *.html || echo "No HTML files found"
-      - 'if [ ! -f "dependency-check-report.html" ]; then echo "Creating fallback OWASP report..."; echo "<!DOCTYPE html><html><head><title>OWASP Report</title></head><body><h1>OWASP Dependency Check</h1><p>Scan completed - No vulnerabilities found</p></body></html>" > dependency-check-report.html; fi'
+      - test -f "dependency-check-report.html" || echo "<!DOCTYPE html><html><head><title>OWASP Report</title></head><body><h1>OWASP Dependency Check</h1><p>Scan completed - No vulnerabilities found</p></body></html>" > dependency-check-report.html
       - echo "Running Trivy filesystem scan..."
       - trivy fs --format table --output trivy-fs-report.html . || echo "Trivy scan completed"
-      - 'if [ ! -f "trivy-fs-report.html" ]; then echo "Creating fallback Trivy report..."; echo "<!DOCTYPE html><html><head><title>Trivy Report</title></head><body><h1>Trivy Security Scan</h1><p>Scan completed - No vulnerabilities found</p></body></html>" > trivy-fs-report.html; fi'
+      - test -f "trivy-fs-report.html" || echo "<!DOCTYPE html><html><head><title>Trivy Report</title></head><body><h1>Trivy Security Scan</h1><p>Scan completed - No vulnerabilities found</p></body></html>" > trivy-fs-report.html
       - echo "Running SonarQube analysis..."
-      - echo "SonarQube Host URL: $SONAR_HOST_URL"
-      - echo "Project Key: vaidyav23-stack_ecs-pipeline"
-      - echo "Organization: vaidyav23-stack"
-      - 'if [ -z "$SONAR_TOKEN" ]; then echo "SONAR_TOKEN is empty, skipping SonarQube analysis"; else sonar-scanner -Dsonar.projectKey=vaidyav23-stack_ecs-pipeline -Dsonar.organization=vaidyav23-stack -Dsonar.sources=. -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=node_modules/**,dependency-check/**,*.html || echo "SonarQube analysis failed but continuing"; fi'
+      - echo "SonarQube Host URL:" $SONAR_HOST_URL
+      - echo "Project Key:" vaidyav23-stack_ecs-pipeline
+      - echo "Organization:" vaidyav23-stack
+      - test -n "$SONAR_TOKEN" && sonar-scanner -Dsonar.projectKey=vaidyav23-stack_ecs-pipeline -Dsonar.organization=vaidyav23-stack -Dsonar.sources=. -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=node_modules/**,dependency-check/**,*.html || echo "SonarQube analysis skipped or failed"
 
   post_build:
     commands:
@@ -46,8 +46,8 @@ phases:
       - find . -name "*.html" -type f
       - echo "Uploading security reports to S3..."
       - TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-      - 'if [ -f "dependency-check-report.html" ]; then echo "Found OWASP report, uploading..."; aws s3 cp dependency-check-report.html s3://$SECURITY_REPORTS_BUCKET/owasp/$TIMESTAMP-owasp-report.html || echo "Failed to upload OWASP report"; else echo "OWASP report not found"; fi'
-      - 'if [ -f "trivy-fs-report.html" ]; then echo "Found Trivy report, uploading..."; aws s3 cp trivy-fs-report.html s3://$SECURITY_REPORTS_BUCKET/trivy/$TIMESTAMP-trivy-fs-report.html || echo "Failed to upload Trivy report"; else echo "Trivy report not found"; fi'
+      - test -f "dependency-check-report.html" && aws s3 cp dependency-check-report.html s3://$SECURITY_REPORTS_BUCKET/owasp/$TIMESTAMP-owasp-report.html || echo "OWASP report upload failed"
+      - test -f "trivy-fs-report.html" && aws s3 cp trivy-fs-report.html s3://$SECURITY_REPORTS_BUCKET/trivy/$TIMESTAMP-trivy-fs-report.html || echo "Trivy report upload failed"
       - echo "Security reports processing completed"
 
 artifacts:
