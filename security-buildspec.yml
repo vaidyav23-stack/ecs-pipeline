@@ -27,7 +27,7 @@ phases:
     commands:
       # OWASP Dependency Check
       - echo "Running OWASP Dependency Check..."
-      - ./dependency-check/bin/dependency-check.sh --project "sample-app" --scan . --format HTML --out . || echo "OWASP scan failed but continuing"
+      - ./dependency-check/bin/dependency-check.sh --project "sample-app" --scan . --format HTML --out . --outputFileName dependency-check-report || echo "OWASP scan failed but continuing"
       
       # Trivy filesystem scan
       - echo "Running Trivy filesystem scan..."
@@ -46,20 +46,30 @@ phases:
   post_build:
     commands:
       - echo Security scanning completed on `date`
+      - echo "Checking generated files..."
+      - ls -la
+      - echo "Looking for OWASP report..."
+      - find . -name "*.html" -type f
       - echo "Uploading security reports to S3..."
       
       # Upload reports to S3
       - TIMESTAMP=$(date +%Y%m%d-%H%M%S)
       - |
         if [ -f "dependency-check-report.html" ]; then
+          echo "Found OWASP report, uploading..."
           aws s3 cp dependency-check-report.html s3://$SECURITY_REPORTS_BUCKET/owasp/$TIMESTAMP-owasp-report.html || echo "Failed to upload OWASP HTML report"
+        else
+          echo "OWASP report not found"
         fi
       - |
         if [ -f "trivy-fs-report.html" ]; then
+          echo "Found Trivy report, uploading..."
           aws s3 cp trivy-fs-report.html s3://$SECURITY_REPORTS_BUCKET/trivy/$TIMESTAMP-trivy-fs-report.html || echo "Failed to upload Trivy HTML report"
+        else
+          echo "Trivy report not found"
         fi
       
-      - echo "Security reports generated in HTML format"
+      - echo "Security reports processing completed"
 
 artifacts:
   files:
