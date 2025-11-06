@@ -4,7 +4,7 @@ phases:
     runtime-versions:
       nodejs: 18
     commands:
-      # Install Trivy
+      # Installing Trivy
       - wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | apt-key add -
       - echo "deb https://aquasecurity.github.io/trivy-repo/deb generic main" | tee -a /etc/apt/sources.list
       - apt-get update && apt-get install -y trivy
