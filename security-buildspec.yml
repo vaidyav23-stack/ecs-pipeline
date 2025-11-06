@@ -39,7 +39,12 @@ phases:
       - echo "SonarQube Host URL:" $SONAR_HOST_URL
       - echo "Project Key:" vaidyav23-stack_ecs-pipeline
       - echo "Organization:" vaidyav23-stack
-      - test -n "$SONAR_TOKEN" && sonar-scanner -Dsonar.projectKey=vaidyav23-stack_ecs-pipeline -Dsonar.organization=vaidyav23-stack -Dsonar.sources=. -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=node_modules/**,dependency-check/**,*.html || echo "SonarQube analysis skipped or failed"
+      - echo "Current directory contents:"
+      - ls -la
+      - echo "Checking if SONAR_TOKEN is set:"
+      - test -n "$SONAR_TOKEN" && echo "SONAR_TOKEN is set" || echo "SONAR_TOKEN is empty"
+      - echo "Running sonar-scanner with verbose output..."
+      - sonar-scanner -Dsonar.projectKey=vaidyav23-stack_ecs-pipeline -Dsonar.organization=vaidyav23-stack -Dsonar.sources=. -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN -Dsonar.exclusions=node_modules/**,dependency-check/**,*.html -Dsonar.verbose=true || echo "SonarQube analysis failed"
 
   post_build:
     commands:
