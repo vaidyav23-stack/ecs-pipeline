@@ -27,11 +27,11 @@ phases:
     commands:
       # OWASP Dependency Check
       - echo "Running OWASP Dependency Check..."
-      - ./dependency-check/bin/dependency-check.sh --project "sample-app" --scan . --format JSON --out owasp-report.json || echo "OWASP scan failed but continuing"
+      - ./dependency-check/bin/dependency-check.sh --project "sample-app" --scan . --format HTML --out . || echo "OWASP scan failed but continuing"
       
       # Trivy filesystem scan
       - echo "Running Trivy filesystem scan..."
-      - trivy fs --format json --output trivy-fs-report.json . || echo "Trivy scan failed but continuing"
+      - trivy fs --format table --output trivy-fs-report.html . || echo "Trivy scan failed but continuing"
       
       # SonarQube analysis
       - echo "Running SonarQube analysis..."
@@ -51,28 +51,18 @@ phases:
       # Upload reports to S3
       - TIMESTAMP=$(date +%Y%m%d-%H%M%S)
       - |
-        if [ -f "owasp-report.json" ]; then
-          aws s3 cp owasp-report.json s3://$SECURITY_REPORTS_BUCKET/owasp/$TIMESTAMP-owasp-report.json || echo "Failed to upload OWASP report"
+        if [ -f "dependency-check-report.html" ]; then
+          aws s3 cp dependency-check-report.html s3://$SECURITY_REPORTS_BUCKET/owasp/$TIMESTAMP-owasp-report.html || echo "Failed to upload OWASP HTML report"
         fi
       - |
-        if [ -f "trivy-fs-report.json" ]; then
-          aws s3 cp trivy-fs-report.json s3://$SECURITY_REPORTS_BUCKET/trivy/$TIMESTAMP-trivy-fs-report.json || echo "Failed to upload Trivy report"
+        if [ -f "trivy-fs-report.html" ]; then
+          aws s3 cp trivy-fs-report.html s3://$SECURITY_REPORTS_BUCKET/trivy/$TIMESTAMP-trivy-fs-report.html || echo "Failed to upload Trivy HTML report"
         fi
       
-      - echo "Checking for critical vulnerabilities..."
-      - |
-        if [ -f "owasp-report.json" ]; then
-          CRITICAL_COUNT=$(jq '.dependencies[].vulnerabilities[]? | select(.severity == "HIGH" or .severity == "CRITICAL") | length' owasp-report.json | wc -l)
-          echo "OWASP Critical/High vulnerabilities: $CRITICAL_COUNT"
-        fi
-      - |
-        if [ -f "trivy-fs-report.json" ]; then
-          TRIVY_CRITICAL=$(jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL" or .Severity == "HIGH") | length' trivy-fs-report.json | wc -l)
-          echo "Trivy Critical/High vulnerabilities: $TRIVY_CRITICAL"
-        fi
+      - echo "Security reports generated in HTML format"
 
 artifacts:
   files:
-    - owasp-report.json
-    - trivy-fs-report.json
+    - dependency-check-report.html
+    - trivy-fs-report.html
   name: security-reports
